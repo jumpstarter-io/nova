@@ -430,12 +430,15 @@ class LibvirtConnTestCase(test.TestCase):
                             <model fallback='allow'>Westmere</model>
                             <vendor>Intel</vendor>
                             <feature policy='require' name='aes'/>
+                            <feature policy='require' name='hypervisor'/>
                           </cpu>"""
 
             def getCapabilities(self):
                 """Ensure standard capabilities being returned."""
                 return """<capabilities>
-                            <host><cpu><arch>x86_64</arch></cpu></host>
+                            <host><cpu><arch>x86_64</arch>
+                            <feature policy='require' name='hypervisor'/>
+                            </cpu></host>
                           </capabilities>"""
 
             def getVersion(self):
@@ -886,6 +889,61 @@ class LibvirtConnTestCase(test.TestCase):
             conn._caps = None
             caps = conn.get_host_capabilities()
             self.assertIn('aes', [x.name for x in caps.host.cpu.features])
+
+    def test_cpu_features_are_not_duplicated(self):
+        conn = libvirt_driver.LibvirtDriver(fake.FakeVirtAPI(), True)
+
+        # Test old version of libvirt. Should return single 'hypervisor'
+        with mock.patch('nova.virt.libvirt.driver.libvirt') as mock_libvirt:
+            del mock_libvirt.VIR_CONNECT_BASELINE_CPU_EXPAND_FEATURES
+            caps = conn.get_host_capabilities()
+            cnt = [x.name for x in caps.host.cpu.features].count('hypervisor')
+            self.assertEqual(1, cnt)
+
+        # Test new version of libvirt. Should still return single 'hypervisor'
+        with mock.patch('nova.virt.libvirt.driver.libvirt') as mock_libvirt:
+            mock_libvirt['VIR_CONNECT_BASELINE_CPU_EXPAND_FEATURES'] = 1
+            # Cleanup the capabilities cache firstly
+            conn._caps = None
+            caps = conn.get_host_capabilities()
+            cnt = [x.name for x in caps.host.cpu.features].count('hypervisor')
+            self.assertEqual(1, cnt)
+
+    def test_baseline_cpu_not_supported(self):
+        conn = libvirt_driver.LibvirtDriver(fake.FakeVirtAPI(), True)
+
+        # `mock` has trouble stubbing attributes that don't exist yet, so
+        # fallback to plain-Python attribute setting/deleting
+        cap_str = 'VIR_CONNECT_BASELINE_CPU_EXPAND_FEATURES'
+        if not hasattr(libvirt_driver.libvirt, cap_str):
+            setattr(libvirt_driver.libvirt, cap_str, True)
+            self.addCleanup(delattr, libvirt_driver.libvirt, cap_str)
+
+        # Handle just the NO_SUPPORT error
+        not_supported_exc = fakelibvirt.make_libvirtError(
+                libvirt.libvirtError,
+                'this function is not supported by the connection driver:'
+                ' virConnectBaselineCPU',
+                error_code=libvirt.VIR_ERR_NO_SUPPORT)
+
+        with mock.patch.object(conn._conn, 'baselineCPU',
+                               side_effect=not_supported_exc):
+            caps = conn.get_host_capabilities()
+            self.assertEqual(vconfig.LibvirtConfigCaps, type(caps))
+            self.assertNotIn('aes', [x.name for x in caps.host.cpu.features])
+
+        # Clear cached result so we can test again...
+        conn._caps = None
+
+        # Other errors should not be caught
+        other_exc = fakelibvirt.make_libvirtError(
+            libvirt.libvirtError,
+            'other exc',
+            error_code=libvirt.VIR_ERR_NO_DOMAIN)
+
+        with mock.patch.object(conn._conn, 'baselineCPU',
+                               side_effect=other_exc):
+            self.assertRaises(libvirt.libvirtError, conn.get_host_capabilities)
 
     def test_lxc_get_host_capabilities_failed(self):
         conn = libvirt_driver.LibvirtDriver(fake.FakeVirtAPI(), True)
