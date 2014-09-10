@@ -45,6 +45,7 @@ import glob
 import mmap
 import os
 import shutil
+import six
 import socket
 import sys
 import tempfile
@@ -2182,7 +2183,7 @@ class LibvirtDriver(driver.ComputeDriver):
         (state, _max_mem, _mem, _cpus, _t) = dom.info()
         state = LIBVIRT_POWER_STATE[state]
         if state in SHUTDOWN_STATES:
-            LOG.info(_LI("Instance already shutdown."),
+            LOG.info(_("Instance already shutdown."),
                      instance=instance)
             return True
 
@@ -2198,7 +2199,7 @@ class LibvirtDriver(driver.ComputeDriver):
             state = LIBVIRT_POWER_STATE[state]
 
             if state in SHUTDOWN_STATES:
-                LOG.info(_LI("Instance shutdown successfully after %d "
+                LOG.info(_("Instance shutdown successfully after %d "
                               "seconds."), sec, instance=instance)
                 return True
 
@@ -2227,7 +2228,7 @@ class LibvirtDriver(driver.ComputeDriver):
 
             time.sleep(1)
 
-        LOG.info(_LI("Instance failed to shutdown in %d seconds."),
+        LOG.info(_("Instance failed to shutdown in %d seconds."),
                  timeout, instance=instance)
         return False
 
