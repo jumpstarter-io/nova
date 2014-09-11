@@ -513,8 +513,8 @@ class LibvirtConfigGuestDisk(LibvirtConfigGuestDevice):
                 drv.set("type", self.driver_format)
             if self.driver_cache is not None:
                 drv.set("cache", self.driver_cache)
+            drv.set("discard", self.driver_discard)
             dev.append(drv)
-        drv.set("discard", self.driver_discard)
 
         if self.source_type == "file":
             dev.append(etree.Element("source", file=self.source_path))
