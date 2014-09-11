@@ -3074,6 +3074,8 @@ class LibvirtDriver(driver.ComputeDriver):
         block_device_mapping = driver.block_device_info_get_mapping(
             block_device_info)
 
+        hw_scsi_model = None
+
         if CONF.libvirt.virt_type == "lxc":
             fs = vconfig.LibvirtConfigGuestFilesys()
             fs.source_type = "mount"
@@ -3136,6 +3138,8 @@ class LibvirtDriver(driver.ComputeDriver):
                 for vol in block_device_mapping:
                     connection_info = vol['connection_info']
                     vol_dev = block_device.prepend_dev(vol['mount_device'])
+                    hw_scsi_model = 'virtio-scsi'
+
                     info = disk_mapping[vol_dev]
                     cfg = self.volume_driver_method('connect_volume',
                                                     connection_info,
@@ -3158,6 +3162,8 @@ class LibvirtDriver(driver.ComputeDriver):
         if (image_meta and
                 image_meta.get('properties', {}).get('hw_scsi_model')):
             hw_scsi_model = image_meta['properties']['hw_scsi_model']
+
+        if hw_scsi_model is not None:
             scsi_controller = vconfig.LibvirtConfigGuestController()
             scsi_controller.type = 'scsi'
             scsi_controller.model = hw_scsi_model

@@ -121,6 +121,8 @@ class LibvirtBaseVolumeDriver(object):
         conf.target_dev = disk_info['dev']
         conf.target_bus = disk_info['bus']
         conf.serial = connection_info.get('serial')
+        if conf.target_bus == "scsi":
+            conf.driver_discard = "unmap"
 
         # Support for block size tuning
         data = {}

@@ -236,6 +236,9 @@ class DriverVolumeBlockDevice(DriverBlockDevice):
             connection_info['serial'] = self.volume_id
         self._preserve_multipath_id(connection_info)
 
+        connection_info['data']['volume_metadata'] = volume.get(
+                'volume_metadata', {})
+
         # If do_driver_attach is False, we will attach a volume to an instance
         # at boot time. So actual attach is done by instance creation code.
         if do_driver_attach:
