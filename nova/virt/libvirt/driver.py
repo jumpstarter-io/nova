@@ -3522,10 +3522,12 @@ class LibvirtDriver(driver.ComputeDriver):
                                                          'raw')
                 devices.append(diskconfig)
 
+        hw_scsi_models = set()
         for vol in block_device.get_bdms_to_connect(block_device_mapping,
                                                    mount_rootfs):
             connection_info = vol['connection_info']
             vol_dev = block_device.prepend_dev(vol['mount_device'])
+            hw_scsi_models.add('virtio-scsi')
             info = disk_mapping[vol_dev]
             cfg = self._connect_volume(connection_info, info)
             devices.append(cfg)
@@ -3537,10 +3539,13 @@ class LibvirtDriver(driver.ComputeDriver):
 
         if (image_meta and
                 image_meta.get('properties', {}).get('hw_scsi_model')):
-            hw_scsi_model = image_meta['properties']['hw_scsi_model']
+            hw_scsi_models.add(image_meta['properties']['hw_scsi_model'])
+
+        for hw_scsi_model in hw_scsi_models:
             scsi_controller = vconfig.LibvirtConfigGuestController()
             scsi_controller.type = 'scsi'
-            scsi_controller.model = hw_scsi_model
+            if scsi_controller.model != 'scsi':
+                scsi_controller.model = hw_scsi_model
             devices.append(scsi_controller)
 
         return devices

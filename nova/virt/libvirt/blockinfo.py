@@ -254,7 +254,7 @@ def get_disk_bus_for_device_type(virt_type,
             else:
                 return "ide"
         elif device_type == "disk":
-            return "virtio"
+            return "scsi"
         elif device_type == "floppy":
             return "fdc"
 
