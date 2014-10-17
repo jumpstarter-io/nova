@@ -281,6 +281,8 @@ CONF.import_opt('proxyclient_address', 'nova.console.serial',
                 group='serial_console')
 CONF.import_opt('hw_disk_discard', 'nova.virt.libvirt.imagebackend',
                 group='libvirt')
+CONF.import_opt('hw_disk_io', 'nova.virt.libvirt.imagebackend',
+                group='libvirt')
 
 DEFAULT_FIREWALL_DRIVER = "%s.%s" % (
     libvirt_firewall.__name__,

@@ -69,6 +69,9 @@ __imagebackend_opts = [
                help='Discard option for nova managed disks (valid options '
                     'are: ignore, unmap). Need Libvirt(1.0.6) Qemu1.5 '
                     '(raw format) Qemu1.6(qcow2 format)'),
+    cfg.StrOpt('hw_disk_io',
+               help='Io option for nova managed disks (valid options '
+                    'are: threads, native)'),
         ]
 
 CONF = cfg.CONF
@@ -109,6 +112,7 @@ class Image(object):
         self.source_type = source_type
         self.driver_format = driver_format
         self.discard_mode = get_hw_disk_discard(CONF.libvirt.hw_disk_discard)
+        self.io_mode = get_hw_disk_io(CONF.libvirt.hw_disk_io)
         self.is_block_dev = is_block_dev
         self.preallocate = False
 
@@ -159,6 +163,7 @@ class Image(object):
         info.target_dev = disk_dev
         info.driver_cache = cache_mode
         info.driver_discard = self.discard_mode
+        info.driver_io = self.io_mode
         info.driver_format = self.driver_format
         driver_name = libvirt_utils.pick_disk_driver_name(hypervisor_version,
                                                           self.is_block_dev)
@@ -628,6 +633,8 @@ class Rbd(Image):
         self.pool = CONF.libvirt.images_rbd_pool
         self.discard_mode = get_hw_disk_discard(
                 CONF.libvirt.hw_disk_discard)
+        self.io_mode = get_hw_disk_io(
+                CONF.libvirt.hw_disk_io)
         self.rbd_user = CONF.libvirt.rbd_user
         self.ceph_conf = CONF.libvirt.images_rbd_ceph_conf
 
@@ -659,6 +666,7 @@ class Rbd(Image):
         info.driver_format = 'raw'
         info.driver_cache = cache_mode
         info.driver_discard = self.discard_mode
+        info.driver_io = self.io_mode
         info.target_bus = disk_bus
         info.target_dev = disk_dev
         info.source_type = 'network'
@@ -784,3 +792,10 @@ def get_hw_disk_discard(hw_disk_discard):
     if hw_disk_discard and hw_disk_discard not in ('unmap', 'ignore'):
         raise RuntimeError(_('Unknown hw_disk_discard=%s') % hw_disk_discard)
     return hw_disk_discard
+
+def get_hw_disk_discard(hw_disk_io):
+    """Check valid and get hw_disk_discard value from Conf.
+    """
+    if hw_disk_io and hw_disk_io not in ('threads', 'native'):
+        raise RuntimeError(_('Unknown hw_disk_io=%s') % hw_disk_io)
+    return hw_disk_io
