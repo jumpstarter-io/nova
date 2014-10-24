@@ -80,7 +80,14 @@ volume_opts = [
     cfg.ListOpt('qemu_allowed_storage_drivers',
                 default=[],
                 help='Protocols listed here will be accessed directly '
-                     'from QEMU. Currently supported protocols: [gluster]')
+                     'from QEMU. Currently supported protocols: [gluster]'),
+    cfg.StrOpt('hw_disk_discard',
+               help='Discard option for nova managed disks (valid options '
+                    'are: ignore, unmap). Need Libvirt(1.0.6) Qemu1.5 '
+                    '(raw format) Qemu1.6(qcow2 format)'),
+    cfg.StrOpt('hw_disk_io',
+               help='Io option for nova managed disks (valid options '
+                    'are: threads, native)'),
     ]
 
 CONF = cfg.CONF
@@ -92,6 +99,8 @@ class LibvirtBaseVolumeDriver(object):
     def __init__(self, connection, is_block_dev):
         self.connection = connection
         self.is_block_dev = is_block_dev
+        self.discard_mode = get_hw_disk_discard(CONF.libvirt.hw_disk_discard)
+        self.io_mode = get_hw_disk_io(CONF.libvirt.hw_disk_io)
 
     def get_config(self, connection_info, disk_info):
         """Returns xml for libvirt."""
@@ -107,6 +116,8 @@ class LibvirtBaseVolumeDriver(object):
         conf.target_dev = disk_info['dev']
         conf.target_bus = disk_info['bus']
         conf.serial = connection_info.get('serial')
+        conf.driver_discard = self.discard_mode
+        conf.driver_io = self.io_mode
 
         # Support for block size tuning
         data = {}
@@ -1180,3 +1191,19 @@ class LibvirtGPFSVolumeDriver(LibvirtBaseVolumeDriver):
         conf.source_type = "file"
         conf.source_path = connection_info['data']['device_path']
         return conf
+
+
+def get_hw_disk_discard(hw_disk_discard):
+    """Check valid and get hw_disk_discard value from Conf.
+    """
+    if hw_disk_discard and hw_disk_discard not in ('unmap', 'ignore'):
+        raise RuntimeError(_('Unknown hw_disk_discard=%s') % hw_disk_discard)
+    return hw_disk_discard
+
+def get_hw_disk_io(hw_disk_io):
+    """Check valid and get hw_disk_discard value from Conf.
+    """
+    if hw_disk_io and hw_disk_io not in ('threads', 'native'):
+        raise RuntimeError(_('Unknown hw_disk_io=%s') % hw_disk_io)
+    return hw_disk_io
+
