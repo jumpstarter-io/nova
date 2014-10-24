@@ -793,7 +793,7 @@ def get_hw_disk_discard(hw_disk_discard):
         raise RuntimeError(_('Unknown hw_disk_discard=%s') % hw_disk_discard)
     return hw_disk_discard
 
-def get_hw_disk_discard(hw_disk_io):
+def get_hw_disk_io(hw_disk_io):
     """Check valid and get hw_disk_discard value from Conf.
     """
     if hw_disk_io and hw_disk_io not in ('threads', 'native'):
