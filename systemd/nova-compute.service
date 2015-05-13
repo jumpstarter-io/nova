@@ -1,0 +1,11 @@
+[Unit]
+Description=Nova Compute server
+
+[Service]
+ExecStart=/usr/bin/nova-compute --config-file /etc/nova/nova.conf
+User=root
+RestartSec=3
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
