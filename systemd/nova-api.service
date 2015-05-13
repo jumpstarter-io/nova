@@ -1,0 +1,11 @@
+[Unit]
+Description=Nova API server
+
+[Service]
+ExecStart=/usr/bin/nova-api --config-dir /etc/nova/
+User=root
+RestartSec=3
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
