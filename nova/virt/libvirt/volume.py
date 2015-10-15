@@ -113,10 +113,35 @@ volume_opts = [
                     'generated manually or via iscsiadm -m iface'),
                     # iser is also supported, but use LibvirtISERVolumeDriver
                     # instead
+    cfg.StrOpt('volume_disk_discard',
+               default='unmap',
+               help='Discard option for nova managed disks (valid options '
+                    'are: ignore, unmap). Need Libvirt(1.0.6) Qemu1.5 '
+                    '(raw format) Qemu1.6(qcow2 format)'),
+    cfg.StrOpt('volume_disk_io',
+               default='native',
+               help='Io option for nova managed disks (valid options '
+                    'are: threads, native)'),
     ]
 
 CONF = cfg.CONF
 CONF.register_opts(volume_opts, 'libvirt')
+
+
+def get_volume_disk_discard(volume_disk_discard):
+    """Check valid and get volume_disk_discard value from Conf.
+    """
+    if volume_disk_discard and volume_disk_discard not in ('unmap', 'ignore'):
+        raise RuntimeError(_('Unknown volume_disk_discard=%s') % volume_disk_discard)
+    return volume_disk_discard
+
+
+def get_volume_disk_io(volume_disk_io):
+    """Check valid and get volume_disk_discard value from Conf.
+    """
+    if volume_disk_io and volume_disk_io not in ('threads', 'native'):
+        raise RuntimeError(_('Unknown volume_disk_io=%s') % volume_disk_io)
+    return volume_disk_io
 
 
 class LibvirtBaseVolumeDriver(object):
@@ -124,6 +149,8 @@ class LibvirtBaseVolumeDriver(object):
     def __init__(self, connection, is_block_dev):
         self.connection = connection
         self.is_block_dev = is_block_dev
+        self.discard_mode = get_volume_disk_discard(CONF.libvirt.volume_disk_discard)
+        self.io_mode = get_volume_disk_io(CONF.libvirt.volume_disk_io)
 
     def get_config(self, connection_info, disk_info):
         """Returns xml for libvirt."""
@@ -139,6 +166,8 @@ class LibvirtBaseVolumeDriver(object):
         conf.target_dev = disk_info['dev']
         conf.target_bus = disk_info['bus']
         conf.serial = connection_info.get('serial')
+        conf.driver_discard = self.discard_mode
+        conf.driver_io = self.io_mode
 
         # Support for block size tuning
         data = {}
