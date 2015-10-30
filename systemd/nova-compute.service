@@ -1,5 +1,6 @@
 [Unit]
 Description=Nova Compute server
+After=neutron-plugin-openvswitch-agent.service
 
 [Service]
 ExecStart=/usr/bin/nova-compute --config-file /etc/nova/nova.conf
